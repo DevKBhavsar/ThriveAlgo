@@ -1,11 +1,15 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import Calender from './Components/Calender'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+
+
 
 export default function App() {
   return (
-    <h1 className="text-3xl font-bold underline text-center">
-      Hello world!
-    </h1>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Calender/>}/>
+      </Routes>
+    </Router>
   )
 }
