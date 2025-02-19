@@ -20,7 +20,7 @@ const Calendar = () => {
     try {
       const response = await axios.get(`${API_URL}/api/holidays`);
       setHolidays(response.data);
-      console.log(response.data)
+      // console.log(response.data)
       // return 0: id: '', date: '2025-12-25T00:00:00Z', title: 'Christmas'}
     } catch (error) {
       console.error('Error fetching holidays:', error);
@@ -40,7 +40,9 @@ const Calendar = () => {
           title: newHoliday.name,
           date: selectedDate
         });
-        setHolidays([...holidays, response.data]);
+        // Ensure we're working with an array when updating holidays
+        const currentHolidays = Array.isArray(holidays) ? holidays : [];
+        setHolidays([...currentHolidays, response.data]);
         setShowModal(false);
         setNewHoliday({ name: ''});
       } catch (error) {
