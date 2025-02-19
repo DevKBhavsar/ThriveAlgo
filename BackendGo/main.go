@@ -32,6 +32,9 @@ func getAllHoliday(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if holidays == nil {
+		holidays = []Holiday{}
+	}
 	json.NewEncoder(w).Encode(holidays)
 }
 
@@ -69,7 +72,7 @@ func createHolidayHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(holiday)
+	json.NewEncoder(w).Encode([]Holiday{holiday})
 }
 
 func deleteHolidayHandler(w http.ResponseWriter, r *http.Request) {
