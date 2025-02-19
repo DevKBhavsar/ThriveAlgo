@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -89,11 +88,6 @@ func deleteHolidayHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Initialize MongoDB client
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading env")
-	}
 
 	client = InitMongoClient()
 
