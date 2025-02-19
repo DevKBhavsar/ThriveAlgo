@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -18,61 +17,38 @@ import (
 var client *mongo.Client
 
 type Holiday struct {
-	ID    string    `json:"id" bson:"_id,omitempty"`
-	Date  time.Time `json:"date" bson:"date"`
-	Title string    `json:"title" bson:"title"`
+	ID    string `json:"id" bson:"_id"`
+	Date  string `json:"date" bson:"date"`
+	Title string `json:"title" bson:"title"`
 }
 
 func getAllHoliday(w http.ResponseWriter, r *http.Request) {
 	holidays, err := retrieveAll()
 	if err != nil {
-		log.Printf("Error retrieving holidays: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if holidays == nil {
-		holidays = []Holiday{}
-	}
 	json.NewEncoder(w).Encode(holidays)
 }
 
 func createHolidayHandler(w http.ResponseWriter, r *http.Request) {
-	var holidayRequest struct {
-		Title string `json:"title"`
-		Date  string `json:"date"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&holidayRequest); err != nil {
-		log.Printf("Error decoding request: %v", err)
-		http.Error(w, "Invalid request format", http.StatusBadRequest)
+	var holiday Holiday
+	if err := json.NewDecoder(r.Body).Decode(&holiday); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Parse the date from string
-	parsedDate, err := time.Parse("2006-01-02", holidayRequest.Date)
-	if err != nil {
-		log.Printf("Error parsing date: %v", err)
-		http.Error(w, "Invalid date format, use YYYY-MM-DD", http.StatusBadRequest)
-		return
-	}
-
-	holiday := Holiday{
-		ID:    primitive.NewObjectID().Hex(),
-		Date:  parsedDate,
-		Title: holidayRequest.Title,
-	}
-
+	// Generate a new unique ID using MongoDB's ObjectID
+	holiday.ID = primitive.NewObjectID().Hex()
 	if err := holiday.create(); err != nil {
-		log.Printf("Error creating holiday: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode([]Holiday{holiday})
+	json.NewEncoder(w).Encode(holiday)
 }
 
 func deleteHolidayHandler(w http.ResponseWriter, r *http.Request) {
@@ -80,13 +56,12 @@ func deleteHolidayHandler(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 
 	if err := deleteHoliday(id); err != nil {
-		log.Printf("Error deleting holiday: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Holiday deleted successfully"}`))
+
 }
 
 func main() {

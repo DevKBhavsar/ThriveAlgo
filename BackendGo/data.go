@@ -58,11 +58,9 @@ func retrieveAll() ([]Holiday, error) {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-
 	if err = cursor.All(ctx, &holidays); err != nil {
 		return nil, err
 	}
-
 	return holidays, nil
 }
 
