@@ -1,3 +1,4 @@
+// data.go
 package main
 
 import (
@@ -5,18 +6,29 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func InitMongoClient() *mongo.Client {
+	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	
+	err := godotenv.Load()
+	if err != nil {
+        log.Fatal("Error loading .env file")
+    }
 
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	mongoURI := os.Getenv("MONGO_URI")
+	clientOptions := options.Client().ApplyURI(mongoURI)
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal("Error connecting to MongoDB:", err)
@@ -30,7 +42,6 @@ func InitMongoClient() *mongo.Client {
 	fmt.Println("Connected to MongoDB")
 	return client
 }
-
 
 func retrieveAll() ([]Holiday, error) {
 	collection := client.Database("ThriveAlgoData").Collection("holidays")
@@ -59,7 +70,6 @@ func (h *Holiday) create() error {
 	_, err := collection.InsertOne(ctx, h)
 	return err
 }
-
 
 func deleteHoliday(id string) error {
 	collection := client.Database("ThriveAlgoData").Collection("holidays")

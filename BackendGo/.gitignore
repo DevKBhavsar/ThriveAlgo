@@ -1,0 +1,15 @@
+# Ignore environment variables
+.env
+
+# Go build artifacts
+*.exe
+*.out
+*.o
+
+# Go modules
+/go/bin/
+/go/pkg/
+vendor/
+
+# Logs and caches
+*.log
