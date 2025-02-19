@@ -9,7 +9,7 @@ const Calendar = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [newHoliday, setNewHoliday] = useState({ name: '' });
   const [error, setError] = useState(null);
-  const API_URL = 'http://localhost:8080';
+  const API_URL = 'https://thrivealgo-production.up.railway.app/';
 
   const months = useMemo(() => ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], []);
 
