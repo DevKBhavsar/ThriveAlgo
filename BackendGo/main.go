@@ -114,6 +114,6 @@ func main() {
 	handler := c.Handler(r)
 
 	// Start server
-	fmt.Println("Server running on port", port)
+	fmt.Println("Server running on por number", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
