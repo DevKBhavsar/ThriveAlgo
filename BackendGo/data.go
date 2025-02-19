@@ -7,9 +7,9 @@ import (
 	"log"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func InitMongoClient() *mongo.Client {
@@ -31,17 +31,24 @@ func InitMongoClient() *mongo.Client {
 	return client
 }
 
-func retrieve(id string) (Holiday, error) {
+
+func retrieveAll() ([]Holiday, error) {
 	collection := client.Database("ThriveAlgoData").Collection("holidays")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var holiday Holiday
-	err := collection.FindOne(ctx, bson.M{"id": id}).Decode(&holiday)
-	if err == mongo.ErrNoDocuments {
-		return Holiday{}, nil
+	var holidays []Holiday
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
 	}
-	return holiday, err
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &holidays); err != nil {
+		return nil, err
+	}
+
+	return holidays, nil
 }
 
 func (h *Holiday) create() error {
@@ -53,34 +60,13 @@ func (h *Holiday) create() error {
 	return err
 }
 
-func (h *Holiday) update() error {
-	collection := client.Database("ThriveAlgoData").Collection("holidays")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	filter := bson.M{"id": h.ID}
-	update := bson.M{"$set": bson.M{
-		"date":        h.Date,
-		"title":       h.Title,
-		"description": h.Description,
-	}}
-
-	res, err := collection.UpdateOne(ctx, filter, update)
-	if err != nil {
-		return err
-	}
-	if res.MatchedCount == 0 {
-		return errors.New("holiday not found")
-	}
-	return nil
-}
 
 func deleteHoliday(id string) error {
 	collection := client.Database("ThriveAlgoData").Collection("holidays")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := collection.DeleteOne(ctx, bson.M{"id": id})
+	res, err := collection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return err
 	}

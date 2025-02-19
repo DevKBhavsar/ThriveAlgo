@@ -5,111 +5,82 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path"
-	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/rs/cors"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var client *mongo.Client
 
 type Holiday struct {
-	ID          string    `json:"id" bson:"id"`
-	Date        time.Time `json:"date" bson:"date"`
-	Title       string    `json:"title" bson:"title"`
-	Description string    `json:"description" bson:"description"`
+	ID    string `json:"id" bson:"_id"`
+	Date  string `json:"date" bson:"date"`
+	Title string `json:"title" bson:"title"`
 }
 
-func handleRequest(w http.ResponseWriter, r *http.Request) {
-	var err error
-	switch r.Method {
-	case "GET":
-		err = handleGet(w, r)
-	case "POST":
-		err = handlePost(w, r)
-	case "PUT":
-		err = handlePut(w, r)
-	case "DELETE":
-		err = handleDelete(w, r)
-	}
+func getAllHoliday(w http.ResponseWriter, r *http.Request) {
+
+	holidays, err := retrieveAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func handleGet(w http.ResponseWriter, r *http.Request) error {
-	id := path.Base(r.URL.Path)
-	holiday, err := retrieve(id)
-	if err != nil {
-		return err
-	}
-	if holiday.ID == "" {
-		http.Error(w, "Holiday not found", http.StatusNotFound)
-		return nil
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(holiday)
-	return nil
+	json.NewEncoder(w).Encode(holidays)
 }
 
-func handlePost(w http.ResponseWriter, r *http.Request) error {
+func createHolidayHandler(w http.ResponseWriter, r *http.Request) {
 	var holiday Holiday
-	err := json.NewDecoder(r.Body).Decode(&holiday)
-	if err != nil {
-		return err
+	if err := json.NewDecoder(r.Body).Decode(&holiday); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	err = holiday.create()
-	if err != nil {
-		return err
+	// Generate a new unique ID using MongoDB's ObjectID
+	holiday.ID = primitive.NewObjectID().Hex()
+
+	if err := holiday.create(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(holiday)
-	return nil
 }
 
-func handlePut(w http.ResponseWriter, r *http.Request) error {
-	id := path.Base(r.URL.Path)
-	holiday, err := retrieve(id)
-	if err != nil {
-		return err
-	}
-	if holiday.ID == "" {
-		http.Error(w, "Holiday not found", http.StatusNotFound)
-		return nil
-	}
+func deleteHolidayHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
 
-	err = json.NewDecoder(r.Body).Decode(&holiday)
-	if err != nil {
-		return err
-	}
-
-	err = holiday.update()
-	if err != nil {
-		return err
+	if err := deleteHoliday(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	return nil
-}
-
-func handleDelete(w http.ResponseWriter, r *http.Request) error {
-	id := path.Base(r.URL.Path)
-	err := deleteHoliday(id)
-	if err != nil {
-		return err
-	}
-
-	w.WriteHeader(http.StatusOK)
-	return nil
 }
 
 func main() {
 	client = InitMongoClient()
+	r := mux.NewRouter()
+	r.HandleFunc("/api/holidays", getAllHoliday).Methods("GET")
+	r.HandleFunc("/api/holidays", createHolidayHandler).Methods("POST")
+	r.HandleFunc("/api/holidays/{id}", deleteHolidayHandler).Methods("DELETE")
 
-	http.HandleFunc("/api/holidays/", handleRequest)
+	// Create a CORS middleware
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:5173"}, // Add your frontend URL
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
+		Debug:          true, // Enable Debugging for testing, consider disabling in production
+	})
+
+	// Wrap the router with the CORS middleware
+	handler := c.Handler(r)
+
 	fmt.Println("Server running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", handler)) // Use the wrapped handler instead of r
 }
